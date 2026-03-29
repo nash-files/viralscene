@@ -6,10 +6,12 @@ import React, { useState, useContext, useEffect } from "react";
 import { UserContext } from "../App";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/src/lib/utils";
+import { getViewUrl } from "@/src/lib/r2";
 
 export function Feed() {
   const { userId } = useContext(UserContext);
   const [activeTab, setActiveTab] = useState<"foryou" | "following">("foryou");
+  const [videoUrl, setVideoUrl] = useState<string>("");
   
   const creations = useQuery(
     activeTab === "foryou" ? api.creations.list : api.creations.listFollowing,
@@ -30,20 +32,48 @@ export function Feed() {
     setCurrentIndex(0);
   }, [activeTab]);
 
+  const currentVideo = creations?.[currentIndex];
+
+  useEffect(() => {
+    if (currentVideo?.videoUrl) {
+      const fetchUrl = async () => {
+        try {
+          const url = await getViewUrl(currentVideo.videoUrl);
+          setVideoUrl(url);
+        } catch (e) {
+          console.error("Failed to get view URL:", e);
+          setVideoUrl(currentVideo.videoUrl);
+        }
+      };
+      fetchUrl();
+    }
+  }, [currentVideo]);
+
   if (!creations) {
     return (
-      <div className="flex h-full items-center justify-center bg-black text-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="font-mono text-sm tracking-widest opacity-50 uppercase">Loading Feed...</p>
-        </div>
+      <div className="flex h-full w-full items-center justify-center bg-black text-white">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-6"
+        >
+          <div className="relative h-16 w-16">
+            <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent" 
+            />
+          </div>
+          <p className="font-mono text-sm tracking-widest opacity-50 uppercase animate-pulse">Loading Feed...</p>
+        </motion.div>
       </div>
     );
   }
 
   if (creations.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center bg-black text-white relative">
+      <div className="flex h-full w-full items-center justify-center bg-black text-white relative">
         {/* Top Tabs */}
         <div className="absolute top-12 left-0 right-0 z-50 flex justify-center gap-6">
           <button 
@@ -66,17 +96,22 @@ export function Feed() {
           </button>
         </div>
 
-        <div className="flex flex-col items-center gap-4 text-center px-8">
-          <Sparkles className="h-12 w-12 text-primary opacity-50" />
-          <p className="font-mono text-sm tracking-widest opacity-50 uppercase">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center justify-center gap-6 text-center px-8 h-full"
+        >
+          <div className="p-4 rounded-full bg-primary/10">
+            <Sparkles className="h-12 w-12 text-primary" />
+          </div>
+          <p className="font-headline text-xl font-bold tracking-tight">
             {activeTab === "following" ? "No creations from people you follow." : "No viral scenes yet. Be the first!"}
           </p>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
-  const currentVideo = creations[currentIndex];
   const interactions = useQuery(api.interactions.checkInteractions, userId && currentVideo ? { userId, creationId: currentVideo._id } : "skip" as any);
   const isFollowing = useQuery(api.interactions.checkFollow, userId && currentVideo?.user ? { followerId: userId, followingId: currentVideo.user._id } : "skip" as any);
   const comments = useQuery(api.interactions.getComments, currentVideo ? { creationId: currentVideo._id } : "skip" as any);
@@ -165,7 +200,7 @@ export function Feed() {
           className="absolute inset-0"
         >
           <video
-            src={currentVideo.videoUrl}
+            src={videoUrl}
             className="h-full w-full object-cover"
             autoPlay
             loop

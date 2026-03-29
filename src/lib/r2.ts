@@ -1,3 +1,17 @@
+export async function getViewUrl(key: string) {
+  const response = await fetch(`/api/r2/view-url?key=${encodeURIComponent(key)}`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get view URL");
+  }
+
+  const { url } = await response.json();
+  return url;
+}
+
 export async function getUploadUrl(fileName: string, contentType: string) {
   const response = await fetch("/api/r2/upload-url", {
     method: "POST",

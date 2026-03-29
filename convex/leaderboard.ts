@@ -28,7 +28,7 @@ export const updatePoints = mutation({
     
     const existing = await ctx.db
       .query("leaderboard")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.eq(q.field("userId"), args.userId))
       .filter((q) => q.eq(q.field("season"), currentSeason))
       .first();
 

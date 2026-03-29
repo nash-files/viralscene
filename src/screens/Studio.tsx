@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "motion/react";
 import React, { useState, useContext, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { cn } from "@/src/lib/utils";
-import { enhancePrompt, generateVideo, generateImage, generateVideoFromImage, moderateContent } from "@/src/lib/gemini";
+import { moderateContent, enhancePrompt } from "@/src/lib/gemini";
+import { generateVideo, generateImage, generateVideoFromImage } from "@/src/lib/fal";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { UserContext } from "../App";
@@ -132,7 +133,6 @@ export function Studio() {
       return;
     }
 
-    const isFreeTier = !hasApiKey;
     setIsGenerating(true);
     setGenerationStep("Checking content safety...");
     
@@ -156,7 +156,7 @@ export function Studio() {
 
       // 2. Generate Content
       if (activeTab === "text-to-video") {
-        setGenerationStep(isFreeTier ? "Simulating generation (Free Tier)..." : "Generating video...");
+        setGenerationStep("Generating video...");
         resultBlob = await generateVideo(prompt, aspectRatio as "16:9" | "9:16");
         mimeType = "video/mp4";
         extension = "mp4";
@@ -266,37 +266,19 @@ export function Studio() {
           </div>
         </div>
 
-        {/* API Key Banner */}
-        {!hasApiKey ? (
-          <div className="bg-surface-container-high border border-secondary/20 p-4 rounded-xl flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Sparkles className="text-secondary w-5 h-5" />
-              <div>
-                <p className="font-headline text-sm font-bold">Free Tier Mode</p>
-                <p className="font-label text-xs text-on-surface/40">Using AI prompt enhancement. Video generation is simulated.</p>
-              </div>
-            </div>
-            <button 
-              onClick={handleSelectKey}
-              className="px-4 py-2 bg-secondary/10 text-secondary rounded-full text-xs font-bold hover:bg-secondary/20"
-            >
-              Go Pro (Veo)
-            </button>
-          </div>
-        ) : (
-          <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Zap className="text-primary w-5 h-5" />
-              <div>
-                <p className="font-headline text-sm font-bold">Pro Mode Active</p>
-                <p className="font-label text-xs text-on-surface/40">Generating real cinematic videos with Veo.</p>
-              </div>
-            </div>
-            <div className="px-3 py-1 bg-primary/20 text-primary rounded-full text-[10px] font-bold uppercase tracking-widest">
-              Active
+        {/* Generation Banner */}
+        <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Zap className="text-primary w-5 h-5" />
+            <div>
+              <p className="font-headline text-sm font-bold">Pro Generation Active</p>
+              <p className="font-label text-xs text-on-surface/40">Generating real cinematic content with fal.ai.</p>
             </div>
           </div>
-        )}
+          <div className="px-3 py-1 bg-primary/20 text-primary rounded-full text-[10px] font-bold uppercase tracking-widest">
+            Active
+          </div>
+        </div>
 
         {/* Tabs */}
         <div className="grid grid-cols-2 gap-3 bg-surface-container-low p-2 rounded-2xl w-full max-w-sm mx-auto">

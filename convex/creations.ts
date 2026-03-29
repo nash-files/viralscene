@@ -132,7 +132,7 @@ export const create = mutation({
         const currentSeason = new Date().getFullYear() + "-Q" + Math.floor((new Date().getMonth() + 3) / 3);
         const leaderboardEntry = await ctx.db
           .query("leaderboard")
-          .withIndex("by_user", (q) => q.eq("userId", template.creatorId))
+          .filter((q) => q.eq(q.field("userId"), template.creatorId))
           .filter((q) => q.eq(q.field("season"), currentSeason))
           .first();
           
@@ -153,7 +153,7 @@ export const create = mutation({
     const currentSeason = new Date().getFullYear() + "-Q" + Math.floor((new Date().getMonth() + 3) / 3);
     const leaderboardEntry = await ctx.db
       .query("leaderboard")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.eq(q.field("userId"), args.userId))
       .filter((q) => q.eq(q.field("season"), currentSeason))
       .first();
       
@@ -190,7 +190,7 @@ export const createTemplate = mutation({
     const currentSeason = new Date().getFullYear() + "-Q" + Math.floor((new Date().getMonth() + 3) / 3);
     const leaderboardEntry = await ctx.db
       .query("leaderboard")
-      .withIndex("by_user", (q) => q.eq("userId", args.creatorId))
+      .filter((q) => q.eq(q.field("userId"), args.creatorId))
       .filter((q) => q.eq(q.field("season"), currentSeason))
       .first();
       

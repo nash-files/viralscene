@@ -66,7 +66,7 @@ export const voteEntry = mutation({
     const currentSeason = new Date().getFullYear() + "-Q" + Math.floor((new Date().getMonth() + 3) / 3);
     const leaderboardEntry = await ctx.db
       .query("leaderboard")
-      .withIndex("by_user", (q) => q.eq("userId", entry.userId))
+      .filter((q) => q.eq(q.field("userId"), entry.userId))
       .filter((q) => q.eq(q.field("season"), currentSeason))
       .first();
       

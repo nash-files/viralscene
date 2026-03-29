@@ -23,7 +23,7 @@ export const toggleLike = mutation({
       // Remove points from creator
       const leaderboardEntry = await ctx.db
         .query("leaderboard")
-        .withIndex("by_user", (q) => q.eq("userId", creation.userId))
+        .filter((q) => q.eq(q.field("userId"), creation.userId))
         .filter((q) => q.eq(q.field("season"), currentSeason))
         .first();
         
@@ -41,7 +41,7 @@ export const toggleLike = mutation({
       // Add points to creator
       const leaderboardEntry = await ctx.db
         .query("leaderboard")
-        .withIndex("by_user", (q) => q.eq("userId", creation.userId))
+        .filter((q) => q.eq(q.field("userId"), creation.userId))
         .filter((q) => q.eq(q.field("season"), currentSeason))
         .first();
         

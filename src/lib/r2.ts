@@ -1,25 +1,24 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-
-const r2Client = new S3Client({
-  region: "auto",
-  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
-  },
-});
-
 export async function getUploadUrl(fileName: string, contentType: string) {
-  const command = new PutObjectCommand({
-    Bucket: process.env.R2_BUCKET_NAME,
-    Key: fileName,
-    ContentType: contentType,
+  const response = await fetch("/api/r2/upload-url", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fileName, contentType }),
   });
 
-  return await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get upload URL");
+  }
+
+  const { url } = await response.json();
+  return url;
 }
 
 export function getPublicUrl(fileName: string) {
-  return `${process.env.VITE_R2_PUBLIC_URL}/${fileName}`;
+  const publicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
+  if (!publicUrl) return `https://placeholder.r2.dev/${fileName}`;
+  const baseUrl = publicUrl.endsWith("/") ? publicUrl.slice(0, -1) : publicUrl;
+  return `${baseUrl}/${fileName}`;
 }

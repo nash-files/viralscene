@@ -14,7 +14,7 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 w-full z-50 flex justify-around items-center h-20 pb-safe px-4 bg-[#262528]/70 backdrop-blur-3xl rounded-t-[24px] shadow-[0_-8px_32px_rgba(182,160,255,0.08)]">
+    <nav className="fixed bottom-0 w-full z-50 flex justify-around items-center h-16 pb-safe px-4 bg-[#262528]/70 backdrop-blur-3xl rounded-t-[24px] shadow-[0_-8px_32px_rgba(182,160,255,0.08)]">
       {navItems.map((item) => {
         const isActive = location.pathname === item.path;
         const Icon = item.icon;

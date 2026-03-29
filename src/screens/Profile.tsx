@@ -1,6 +1,12 @@
-import { Verified, CircleDollarSign, Wand2, Rocket, Award, Grid, Layers } from "lucide-react";
-import { motion } from "motion/react";
+import { Verified, CircleDollarSign, Wand2, Rocket, Award, Grid, Layers, Plus, MapPin, Link as LinkIcon, Settings, LogOut, X, Camera, Bookmark, Zap } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/src/lib/utils";
+import React, { useState, useContext, useEffect } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { UserContext } from "../App";
+import { logOut } from "@/src/lib/firebase";
+import { useNavigate } from "react-router-dom";
 
 const ACHIEVEMENTS = [
   { id: 1, name: "Top Creator", icon: Award, color: "text-primary", bg: "from-primary/20 to-secondary/20", shadow: "shadow-[0_0_15px_rgba(182,160,255,0.2)]" },
@@ -8,54 +14,138 @@ const ACHIEVEMENTS = [
   { id: 3, name: "Early Adopter", icon: Rocket, color: "text-secondary", bg: "from-secondary/20 to-primary/20", shadow: "shadow-[0_0_15px_rgba(0,227,253,0.2)]" },
 ];
 
-const CREATIONS = [
-  { id: 1, views: "2.4k", image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDlfyw9zMqrIzSVxduZG7eMuHhUjFk_Huj_35K1TWwrsIpk_2nx9wo0hVXwe6bWa6zWnVbfJIvotzRmA5gQ9ypwdFgPpjTvg1tsvIA_BCi5dqHCiWzKn4l_WtHB6gcKBh4HItKyb-WM5s2L-MgFOFTWi477Cj94T7cwFLeT7YJUsZTrHtlyHi21Y7m9RilxbK1f987irXgIIN_69TA2bBKvytcKIq_6iITiNBk-ob4dHVdXEhaNctT11KNhGb2HrEkK3Jzeol8xSUg" },
-  { id: 2, views: "8.1k", image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAQ8H3TH6rhRASNILhXY-Psl181n9yR0NpN2eb7y8JX1JQP94BGPmg85AIbitoEVe9qiOj1bwMEyBFdt-P4G6v-j07g6BQuCYthyMcmHFCNFcsCyAsYE8IIC7K1pFAFxiHcA58ow4gNVcOvGYvoPb1joXLxUySr4nodlsznMbrPPa6LLYMSxARzZ9Ji5Zv2hEoz_3CjAHvFZGaEUer24Sk-hL1SzqHbtEo664MD8aXJ_yu_1yNCJdz7OwsU50lDOyXjH6eXr3i5E0Q" },
-  { id: 3, views: "1.2k", image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBJ_J8l_pLsSuRyIaQkndIm8AesmjxuEhgT3LIGzvD8UVuqUpDOaxsRsard25adVx14KbQCjy4Ij3Blo4dW1VHpy-JnsT3M4CrxA_6e0V6vbkz-7LX5_E8ihDuaWONMaxrUpE_FQH1N1i96tEIcB7Chj66MwUYeEuISRKGZ4yRSyInSzDd6GffCx1DXd1UGt26nlrqmWr-M-jedkFbp4kieJqchyefg7YanKfvWWn_AQmQEbdLG9Jvzwdk0PAa5CALYvw1spAu5bns" },
-  { id: 4, views: "5.6k", image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDCWrVWFjCPiyY8KVzblDpnguFfvpvh0TNua8Q8I7FrcZCeNACMK71u2XNR1T0_ijtL5pAY1zsM7xWuBi1LWUSvApdrtKvstUTeG6tthb4pL0IeW2hPtKMvPqy_RPGR7SJmGL8xTBCHnsHF4RWSqXtmzi7fUPZm5eo1JMscQZBJ3TzRsQQ6722jxcg8cSIKAdOgDY2Mo9xfh6BzezaHRidvCdW9NqU3ZCd1fU62YbsTOsuijUYt1KaBD-huHLRAxXvWizvb7OUIJzs" },
-];
-
 export function Profile() {
+  const { userId, user, firebaseUser } = useContext(UserContext);
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("creations");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ username: "", bio: "", avatarUrl: "" });
+  
+  const userCreations = useQuery(api.creations.listByUser, userId ? { userId } : "skip" as any);
+  const bookmarkedCreations = useQuery(api.creations.listBookmarked, userId ? { userId } : "skip" as any);
+  const updateUser = useMutation(api.users.update);
+  const createTemplate = useMutation(api.creations.createTemplate);
+
+  const handleCreateTemplate = async (creation: any) => {
+    if (!userId) return;
+    try {
+      await createTemplate({
+        creatorId: userId,
+        prompt: creation.prompt,
+        style: creation.style,
+        thumbnailUrl: creation.thumbnailUrl,
+        structuredPrompt: JSON.stringify({
+          prompt: creation.prompt,
+          style: creation.style,
+          aspectRatio: "9:16"
+        })
+      });
+      alert("Template created successfully! Other users can now remix your scene.");
+    } catch (e) {
+      console.error("Failed to create template:", e);
+      alert("Failed to create template.");
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      setEditForm({
+        username: user.username || "",
+        bio: user.bio || "",
+        avatarUrl: user.avatarUrl || ""
+      });
+    }
+  }, [user]);
+
+  const handleLogout = async () => {
+    if (confirm("Are you sure you want to log out?")) {
+      await logOut();
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId) return;
+    try {
+      await updateUser({
+        id: userId,
+        ...editForm
+      });
+      setIsEditing(false);
+    } catch (error) {
+      alert("Failed to update profile: " + (error as Error).message);
+    }
+  };
+
+  if (!user && !firebaseUser) {
+    return (
+      <div className="flex h-full items-center justify-center bg-black text-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="font-mono text-sm tracking-widest opacity-50 uppercase">Loading Profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <main className="pt-20 px-4 max-w-md mx-auto pb-24">
+    <main className="pt-20 px-4 max-w-md mx-auto pb-24 overflow-y-auto no-scrollbar h-screen">
       {/* Header Section: Avatar & Bio */}
       <section className="flex flex-col items-center mt-6">
         <div className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-tr from-primary via-secondary to-tertiary rounded-full blur opacity-40 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
           <div className="relative w-28 h-28 rounded-full p-1 bg-background">
             <img 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBg0tvcDJO0jPZ3Fd6_UJFn9qDYS_EmZsGJCBtAESBqoq_jgbDVF8c92oG2NwWuPN1VyAbtAh8-MkYy_zbpKJJOsBCh_wgi_VawtPQCDu0ugQgYTEo8HdTRhRSHCbih7CU34u57gLaefgeN6Lvj8AU6pxjZfMMLEEi1dwDtMBWKlyfTDOPXHzXt1NzdCL4wBHxNzJVW3473raWg0Ar3yE6ijet0Ocw64JV2sX3gubs8Aq2-Sx4ymv2ChYecx3Tc8VRgWwAcKS8B2CM" 
+              src={user?.avatarUrl || firebaseUser?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser?.uid}`} 
               alt="Avatar" 
               className="w-full h-full rounded-full object-cover border-2 border-surface" 
             />
           </div>
-          <div className="absolute bottom-1 right-1 bg-secondary w-6 h-6 rounded-full flex items-center justify-center border-2 border-surface shadow-lg">
-            <Verified className="w-3.5 h-3.5 text-background fill-current" />
-          </div>
+          {user?.verified && (
+            <div className="absolute bottom-1 right-1 bg-secondary w-6 h-6 rounded-full flex items-center justify-center border-2 border-surface shadow-lg">
+              <Verified className="w-3.5 h-3.5 text-background fill-current" />
+            </div>
+          )}
         </div>
-        <h1 className="mt-4 text-2xl font-headline font-extrabold tracking-tight">@nebula_creator</h1>
+        <h1 className="mt-4 text-2xl font-headline font-extrabold tracking-tight">
+          {user?.username ? `@${user.username}` : firebaseUser?.displayName || "User"}
+        </h1>
         <p className="text-on-surface-variant text-center mt-2 px-6 text-sm leading-relaxed">
-          Architect of digital dreams. 🌌 Creating viral AI aesthetics and kinetic motion templates. 
+          {user?.bio || "Architect of digital dreams. 🌌"}
         </p>
-        <button className="mt-6 px-8 py-2.5 bg-surface-container-high border border-outline-variant/30 rounded-full font-label text-sm font-semibold hover:bg-surface-container-highest transition-colors active:scale-95">
-          Edit Profile
-        </button>
+        <div className="flex gap-3 mt-6">
+          <button 
+            onClick={() => setIsEditing(true)}
+            className="px-6 py-2.5 bg-surface-container-high border border-outline-variant/30 rounded-full font-label text-sm font-semibold hover:bg-surface-container-highest transition-colors active:scale-95"
+          >
+            Edit Profile
+          </button>
+          <button 
+            onClick={() => navigate("/subscription")}
+            className="px-6 py-2.5 bg-primary text-background border border-primary/30 rounded-full font-label text-sm font-semibold hover:opacity-90 transition-all active:scale-95 flex items-center gap-2 shadow-lg"
+          >
+            <Zap className="w-4 h-4 fill-current" />
+            Upgrade
+          </button>
+        </div>
       </section>
 
       {/* Stats Section */}
       <section className="mt-8 grid grid-cols-3 gap-2 px-2">
         <div className="bg-surface-container-low p-4 rounded-lg flex flex-col items-center justify-center">
-          <span className="text-xl font-headline font-bold text-on-surface">12.8K</span>
+          <span className="text-xl font-headline font-bold text-on-surface">
+            {user?.followers > 1000 ? `${(user.followers / 1000).toFixed(1)}K` : user?.followers || 0}
+          </span>
           <span className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mt-1">Followers</span>
         </div>
         <div className="bg-surface-container-low p-4 rounded-lg flex flex-col items-center justify-center">
-          <span className="text-xl font-headline font-bold text-on-surface">432</span>
+          <span className="text-xl font-headline font-bold text-on-surface">{user?.following || 0}</span>
           <span className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mt-1">Following</span>
         </div>
         <div className="bg-gradient-to-br from-surface-container-high to-surface-container-low p-4 rounded-lg flex flex-col items-center justify-center border border-primary/10">
           <div className="flex items-center gap-1">
             <CircleDollarSign className="text-primary w-5 h-5 fill-current" />
-            <span className="text-xl font-headline font-bold text-primary">1,250</span>
+            <span className="text-xl font-headline font-bold text-primary">{user?.coins || 0}</span>
           </div>
           <span className="text-[10px] font-label uppercase tracking-widest text-primary/70 mt-1">Coins</span>
         </div>
@@ -78,34 +168,80 @@ export function Profile() {
               <span className="text-[10px] font-label text-on-surface-variant">{item.name}</span>
             </div>
           ))}
-          <div className="flex-shrink-0 flex flex-col items-center gap-2">
-            <div className="w-14 h-14 rounded-full bg-surface-container-highest flex items-center justify-center border border-outline-variant/30 grayscale opacity-50">
-              <Award className="text-on-surface-variant w-6 h-6" />
-            </div>
-            <span className="text-[10px] font-label text-on-surface-variant">Elite</span>
-          </div>
         </div>
       </section>
 
       {/* Content Tabs */}
       <section className="mt-10">
         <div className="flex p-1 bg-surface-container-low rounded-xl mb-6">
-          <button className="flex-1 py-2.5 rounded-lg bg-surface-container-high text-secondary text-sm font-semibold shadow-sm flex items-center justify-center gap-2">
+          <button 
+            onClick={() => setActiveTab("creations")}
+            className={cn(
+              "flex-1 py-2.5 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-all",
+              activeTab === "creations" ? "bg-surface-container-high text-secondary" : "text-on-surface-variant hover:text-on-surface"
+            )}
+          >
             <Grid className="w-4 h-4 fill-current" />
-            My Creations
+            Creations
           </button>
-          <button className="flex-1 py-2.5 rounded-lg text-on-surface-variant text-sm font-medium hover:text-on-surface transition-colors flex items-center justify-center gap-2">
-            <Layers className="w-4 h-4" />
-            My Templates
+          <button 
+            onClick={() => setActiveTab("bookmarks")}
+            className={cn(
+              "flex-1 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all",
+              activeTab === "bookmarks" ? "bg-surface-container-high text-secondary" : "text-on-surface-variant hover:text-on-surface"
+            )}
+          >
+            <Bookmark className="w-4 h-4" />
+            Saved
           </button>
         </div>
         
         {/* Bento Grid Content */}
         <div className="grid grid-cols-2 gap-3 mb-12">
-          {CREATIONS.map((creation) => (
-            <div key={creation.id} className="aspect-[9/16] rounded-lg overflow-hidden relative group">
+          {activeTab === "creations" && userCreations?.map((creation) => (
+            <div 
+              key={creation._id} 
+              className="aspect-[9/16] rounded-lg overflow-hidden relative group cursor-pointer"
+              onClick={() => navigate(`/feed?id=${creation._id}`)}
+            >
               <img 
-                src={creation.image} 
+                src={creation.thumbnailUrl} 
+                alt="Creation" 
+                className="w-full h-full object-cover transition duration-500 group-hover:scale-110" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                {!creation.isTemplate && (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCreateTemplate(creation);
+                    }}
+                    className="w-full bg-primary text-background py-2 rounded-lg text-[10px] font-black uppercase tracking-widest mb-2 shadow-lg"
+                  >
+                    Make Template
+                  </button>
+                )}
+                <div className="flex items-center gap-1 text-xs font-label text-white">
+                  <Rocket className="w-3.5 h-3.5 fill-current" />
+                  {creation.views}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {activeTab === "creations" && userCreations?.length === 0 && (
+            <div className="col-span-2 py-12 text-center space-y-4">
+              <div className="w-16 h-16 bg-surface-container-high rounded-full flex items-center justify-center mx-auto">
+                <Plus className="w-8 h-8 text-on-surface/20" />
+              </div>
+              <p className="font-label text-sm text-on-surface/40">No creations yet. Start generating!</p>
+            </div>
+          )}
+
+          {activeTab === "bookmarks" && bookmarkedCreations?.map((creation) => (
+            <div key={creation._id} className="aspect-[9/16] rounded-lg overflow-hidden relative group cursor-pointer">
+              <img 
+                src={creation.thumbnailUrl} 
                 alt="Creation" 
                 className="w-full h-full object-cover transition duration-500 group-hover:scale-110" 
               />
@@ -117,8 +253,86 @@ export function Profile() {
               </div>
             </div>
           ))}
+
+          {activeTab === "bookmarks" && bookmarkedCreations?.length === 0 && (
+            <div className="col-span-2 py-12 text-center space-y-4">
+              <div className="w-16 h-16 bg-surface-container-high rounded-full flex items-center justify-center mx-auto">
+                <Bookmark className="w-8 h-8 text-on-surface/20" />
+              </div>
+              <p className="font-label text-sm text-on-surface/40">No saved scenes yet.</p>
+            </div>
+          )}
         </div>
       </section>
+
+      {/* Edit Profile Modal */}
+      <AnimatePresence>
+        {isEditing && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsEditing(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm bg-surface-container-low rounded-[2.5rem] z-[110] p-8 flex flex-col gap-6"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="font-headline font-bold text-xl">Edit Profile</h3>
+                <button onClick={() => setIsEditing(false)} className="p-2 hover:bg-surface-container-high rounded-full transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative group cursor-pointer">
+                  <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary/20">
+                    <img src={editForm.avatarUrl || user?.avatarUrl} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="text-white w-6 h-6" />
+                  </div>
+                </div>
+                <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant">Change Avatar</p>
+              </div>
+
+              <form onSubmit={handleSaveProfile} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-label uppercase tracking-widest text-primary font-bold ml-1">Username</label>
+                  <input 
+                    type="text"
+                    value={editForm.username}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, username: e.target.value }))}
+                    className="w-full bg-surface-container-high border-none rounded-2xl py-4 px-4 text-sm focus:ring-2 focus:ring-primary transition-all"
+                    placeholder="Enter username..."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-label uppercase tracking-widest text-primary font-bold ml-1">Bio</label>
+                  <textarea 
+                    value={editForm.bio}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
+                    className="w-full bg-surface-container-high border-none rounded-2xl py-4 px-4 text-sm focus:ring-2 focus:ring-primary transition-all resize-none"
+                    placeholder="Tell us about yourself..."
+                    rows={3}
+                  />
+                </div>
+                <button 
+                  type="submit"
+                  className="w-full py-4 bg-primary text-on-primary rounded-full font-headline font-bold text-sm shadow-lg active:scale-95 transition-all mt-4"
+                >
+                  SAVE CHANGES
+                </button>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

@@ -1,17 +1,33 @@
-import { Timer, Trophy, ChevronRight } from "lucide-react";
-import { motion } from "motion/react";
+import { Timer, Trophy, ChevronRight, X, Heart } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/src/lib/utils";
-
-const LEADERBOARD = [
-  { id: 1, name: "NexusVfx", wins: 42, points: "12.5k", image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAetnNP4z3AXFG07xTajaJChfywY8834YX5UpSQyjZcOk5tEENvkk_aI7FygkN4UkUMbhvBjLzotCuihHpyYxUG14XqfGX8ywIHMgrk8DtLXbOGaeZskaxc-hnuTThIw8iIYwAT6f5oochWwaS3EovDKt2WJ8-v2TAbZ6yPk6-6m_CsRC322cTdaFz_sHVIB5G6c8yDAMlWSNZzH7qQHsCDAPdDnKr5ML1e4oihnBOMbQG2xEVE2V2YLrECnWYG3qDNi_ikKFK3Mb4" },
-  { id: 2, name: "EtherReal", wins: 38, points: "11.2k", image: "https://lh3.googleusercontent.com/aida-public/AB6AXuD9TZ3ci-_uwLemk33u-WyFuMtOnVTPVYvsDIJUgVW1bjZq1trNio_CfrwAql5a8L9fEeAuzRVDmwncquA7VDVsYjOpb6KrOnytiBnzh4PMZQS2UTcNe42sZHgj3tibhM8-WNgcAXf1iqCPjIKJNlXN9E2SctJNEKntWbf7iBhlmO85ZMKu-FwFWKMCo_jp76CsOWZ08kZ9p09_l3Q5weh6auUEnC9zw_k8B7avXgfmx1uq1vUW0a_vqsUQk6lF9T2WoF9olJT6OWM" },
-  { id: 3, name: "PixelFlow", wins: 31, points: "9.8k", image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBNFRA9-7Of2UGPk09IGfph0T-2A9HglVTzMsVkMb3Oupacds-yCuEasB1pPmnuQQ97FmhQfexXwE3USZQSJh_8eqW5w9ebsN94QOReiLhDOlCXaA11BotF-mVYS91cx9PSHO0v4aSulvoT33H-jDf2CcXSmE6sGf0hISBRwG4NNpMPUbc1OVaX1dVsimGc7Y3d2R1NgZ-Dsb3e6PlvVD2FJvGzq6CLlj6ozjpS8Ad-68RxXpJDVCkpgfMuQ7yNX4zpS1cc7jytKhU" },
-  { id: 4, name: "ZenithAI", wins: 29, points: "8.4k", image: "https://lh3.googleusercontent.com/aida-public/AB6AXuB-RfgorIKgElYA9FF0gFoIKkx160p4kZyKgH7Ib-6oiTpQFWvpvT1wU_uGBae9C5_oOucCiIAY9H0WInCWfsmQs0dSKzvrvFqSrV8K6h2U0WEBEtzxysg7YcJu7_koPWI6aSrGXzKqrq5NlQQu5EYvv_iYVZf6hg-5h8w6hzmAZ3Gn9NwR7LNtdkZj3_Eym8mrjmatOoSgAU1_ANo9yK5nWKoTUbJ7HopMkrq8Ed98YH0KeMgDghXNasK1Tv9PCfNtFh_Sd-7qmo8" },
-];
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { useNavigate } from "react-router-dom";
+import { useState, useContext } from "react";
+import { UserContext } from "../App";
 
 export function Challenges() {
+  const { userId } = useContext(UserContext);
+  const challenges = useQuery(api.challenges.list);
+  const leaderboard = useQuery(api.leaderboard.list);
+  const navigate = useNavigate();
+  
+  const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
+  const entries = useQuery(api.challenges.getEntries, selectedChallengeId ? { challengeId: selectedChallengeId as any } : "skip" as any);
+  const voteEntry = useMutation(api.challenges.voteEntry);
+
+  const handleVote = async (entryId: string) => {
+    if (!userId) return;
+    try {
+      await voteEntry({ entryId: entryId as any, voterId: userId });
+    } catch (e) {
+      console.error("Vote failed", e);
+    }
+  };
+
   return (
-    <main className="pt-20 px-4 space-y-8 pb-24">
+    <main className="pt-20 px-4 space-y-8 pb-24 overflow-y-auto no-scrollbar h-screen">
       {/* Section 1: Active Challenges */}
       <section className="space-y-4">
         <div className="flex justify-between items-end px-2">
@@ -21,63 +37,49 @@ export function Challenges() {
         
         {/* Horizontal Scroll Cards */}
         <div className="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory no-scrollbar">
-          {/* Challenge Card 1 */}
-          <div className="flex-none w-80 snap-center rounded-lg overflow-hidden relative group">
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10"></div>
-            <img 
-              className="w-full h-96 object-cover group-hover:scale-110 transition-transform duration-700" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGtFd-vC8X05QTEJH0_gbN9fCFZMB7S4p7PDQDaspr31NPE2wtSh62lpyrHq3Fwa2VZ-YZzMEQfljMcBJZH0XkeWSEpzNFk7nCkjPKbumFexErHP98o5U4udUti1wpGnWI1I-XUtBRiFOzRgGVP5OK7_wjh8umhDe7nosQm_iITjGBUo9cygSASpfwSMqgIUIWW7-yNHpqg7m0SgizCRe0cRsIQmTjrtoGGDSSZKS2nmAgaS0OwjXezBiSpKJmwY0YmR1ZcpQ30Wg" 
-              alt="Cyberpunk Challenge"
-            />
-            <div className="absolute top-4 right-4 z-20 glass-panel px-3 py-1.5 rounded-full flex items-center gap-2 border border-outline-variant/10">
-              <Timer className="text-secondary w-4 h-4" />
-              <span className="text-[10px] font-label font-bold text-on-surface tracking-tighter">14:22:05</span>
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 p-5 z-20 space-y-3">
-              <h3 className="text-2xl font-black font-headline text-white leading-tight">Retro Cyberpunk Challenge</h3>
-              <div className="flex justify-between items-center">
-                <div className="space-y-0.5">
-                  <p className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">Prize Pool</p>
-                  <p className="text-secondary font-bold text-lg">50,000 Coins</p>
+          {challenges?.map((challenge) => (
+            <div 
+              key={challenge._id} 
+              onClick={() => setSelectedChallengeId(challenge._id)}
+              className="flex-none w-80 snap-center rounded-lg overflow-hidden relative group cursor-pointer"
+            >
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10"></div>
+              <img 
+                className="w-full h-96 object-cover group-hover:scale-110 transition-transform duration-700" 
+                src={challenge.imageUrl} 
+                alt={challenge.title}
+              />
+              <div className="absolute top-4 right-4 z-20 glass-panel px-3 py-1.5 rounded-full flex items-center gap-2 border border-outline-variant/10">
+                <Timer className="text-secondary w-4 h-4" />
+                <span className="text-[10px] font-label font-bold text-on-surface tracking-tighter">
+                  {new Date(challenge.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 p-5 z-20 space-y-3">
+                <h3 className="text-2xl font-black font-headline text-white leading-tight">{challenge.title}</h3>
+                <div className="flex justify-between items-center">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">Prize Pool</p>
+                    <p className="text-secondary font-bold text-lg">{challenge.prizePool.toLocaleString()} Coins</p>
+                  </div>
+                  <motion.button 
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/studio?challengeId=${challenge._id}`);
+                    }}
+                    className="bg-primary text-background font-bold px-4 py-2 rounded-full text-xs shadow-[0_0_15px_rgba(182,160,255,0.3)]"
+                  >
+                    Join • {challenge.entryFee}
+                  </motion.button>
                 </div>
-                <motion.button 
-                  whileTap={{ scale: 0.9 }}
-                  className="bg-primary text-background font-bold px-4 py-2 rounded-full text-xs shadow-[0_0_15px_rgba(182,160,255,0.3)]"
-                >
-                  Join • 50
-                </motion.button>
               </div>
             </div>
-          </div>
+          ))}
 
-          {/* Challenge Card 2 */}
-          <div className="flex-none w-80 snap-center rounded-lg overflow-hidden relative group">
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10"></div>
-            <img 
-              className="w-full h-96 object-cover group-hover:scale-110 transition-transform duration-700" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbfTXla2i3M1jocA-l-01YnJ5D0znHUg960UcOeAWV1cfgA1gG7meXcpDUGlvpMnyqIdJV8hTGvbpIC5CTvOA_PqgHE8vFP9wHmML1PLgKKQrb3XEDYMymmQnEx0XF5ELZQKDXZeoN7W0w9nlSTvXgg2Ot5LcbTYG7K_hAMltBz-Eb_UtynC8SDIKw8DILQiErZ38FAU2KzWX15IF2KB1mEVbNAhC_N44LTyshJmFdaMPzY6qaXSU8yZhmzI6aIoyOcRpF_lILEE0" 
-              alt="Liquid Motion"
-            />
-            <div className="absolute top-4 right-4 z-20 glass-panel px-3 py-1.5 rounded-full flex items-center gap-2 border border-outline-variant/10">
-              <Timer className="text-primary w-4 h-4" />
-              <span className="text-[10px] font-label font-bold text-on-surface tracking-tighter">02:45:12</span>
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 p-5 z-20 space-y-3">
-              <h3 className="text-2xl font-black font-headline text-white leading-tight">Liquid Motion Master</h3>
-              <div className="flex justify-between items-center">
-                <div className="space-y-0.5">
-                  <p className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">Prize Pool</p>
-                  <p className="text-primary font-bold text-lg">25,000 Coins</p>
-                </div>
-                <motion.button 
-                  whileTap={{ scale: 0.9 }}
-                  className="bg-secondary text-background font-bold px-4 py-2 rounded-full text-xs shadow-[0_0_15px_rgba(0,227,253,0.3)]"
-                >
-                  Join • 20
-                </motion.button>
-              </div>
-            </div>
-          </div>
+          {!challenges && (
+            <div className="flex-none w-80 h-96 bg-surface-container-low rounded-lg animate-pulse" />
+          )}
         </div>
       </section>
 
@@ -88,9 +90,9 @@ export function Challenges() {
           <span className="text-on-surface-variant text-[10px] font-label uppercase tracking-widest">Season 4</span>
         </div>
         <div className="space-y-3">
-          {LEADERBOARD.map((user, index) => (
+          {leaderboard?.map((entry, index) => (
             <div 
-              key={user.id} 
+              key={entry._id} 
               className={cn(
                 "flex items-center gap-4 p-4 rounded-lg transition-colors active:bg-surface-container-high",
                 index === 0 ? "bg-surface-container-high border border-primary/10" : "bg-surface-container-low"
@@ -101,7 +103,13 @@ export function Challenges() {
               </span>
               <div className="relative">
                 <div className={cn("w-12 h-12 rounded-full overflow-hidden p-0.5", index === 0 ? "border-2 border-primary" : "border border-outline-variant/20")}>
-                  <img className="w-full h-full object-cover rounded-full" src={user.image} alt={user.name} />
+                  {entry.user?.avatarUrl ? (
+                    <img src={entry.user.avatarUrl} alt={entry.user.username} className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-surface-container-highest rounded-full flex items-center justify-center">
+                      <span className="text-xs font-bold">{index + 1}</span>
+                    </div>
+                  )}
                 </div>
                 {index === 0 && (
                   <div className="absolute -bottom-1 -right-1 bg-primary text-background w-5 h-5 rounded-full flex items-center justify-center border-2 border-surface-container-high">
@@ -110,17 +118,100 @@ export function Challenges() {
                 )}
               </div>
               <div className="flex-grow">
-                <h4 className="font-bold text-on-surface text-sm">{user.name}</h4>
-                <p className="text-[10px] font-label text-on-surface-variant">{user.wins} Challenges Won</p>
+                <h4 className="font-bold text-on-surface text-sm">@{entry.user?.username || `User_${entry.userId.slice(0, 5)}`}</h4>
+                <p className="text-[10px] font-label text-on-surface-variant">{entry.wins} Challenges Won</p>
               </div>
               <div className="text-right">
-                <p className={cn("font-black font-headline", index === 0 ? "text-secondary" : "text-on-surface")}>{user.points}</p>
+                <p className={cn("font-black font-headline", index === 0 ? "text-secondary" : "text-on-surface")}>{(entry.points / 1000).toFixed(1)}k</p>
                 <p className="text-[8px] font-label text-on-surface-variant uppercase tracking-tighter">Points</p>
               </div>
             </div>
           ))}
+
+          {!leaderboard && (
+            <div className="space-y-3">
+              {[1,2,3].map(i => (
+                <div key={i} className="h-20 bg-surface-container-low rounded-lg animate-pulse" />
+              ))}
+            </div>
+          )}
         </div>
       </section>
+
+      {/* Entries Modal */}
+      <AnimatePresence>
+        {selectedChallengeId && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center"
+            onClick={() => setSelectedChallengeId(null)}
+          >
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-lg bg-surface-container-high rounded-t-3xl sm:rounded-3xl h-[80vh] sm:h-[600px] flex flex-col overflow-hidden shadow-2xl border border-outline-variant/10"
+            >
+              <div className="flex justify-between items-center p-4 border-b border-outline-variant/10">
+                <h3 className="font-headline font-bold text-lg">Challenge Entries</h3>
+                <button 
+                  onClick={() => setSelectedChallengeId(null)}
+                  className="p-2 rounded-full bg-surface-container-highest text-on-surface-variant hover:text-on-surface transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+                {entries === undefined ? (
+                  <div className="flex justify-center items-center h-full">
+                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : entries.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center space-y-4 opacity-50">
+                    <Trophy className="w-12 h-12" />
+                    <p className="font-medium">No entries yet.<br/>Be the first to join!</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    {entries.map((entry) => (
+                      <div key={entry._id} className="relative rounded-xl overflow-hidden group bg-surface-container-lowest">
+                        <img 
+                          src={entry.creation?.thumbnailUrl || "https://picsum.photos/seed/placeholder/400/600"} 
+                          alt="Entry" 
+                          className="w-full aspect-[3/4] object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <img src={entry.user?.avatarUrl} alt="" className="w-6 h-6 rounded-full border border-white/20" />
+                            <span className="text-[10px] font-bold text-white truncate">@{entry.user?.username}</span>
+                          </div>
+                          <button 
+                            onClick={() => handleVote(entry._id)}
+                            className="w-full py-2 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center gap-2 text-white hover:bg-white/30 transition-colors"
+                          >
+                            <Heart className="w-4 h-4" />
+                            <span className="text-xs font-bold">{entry.votes}</span>
+                          </button>
+                        </div>
+                        {/* Always visible vote count on mobile */}
+                        <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-md px-2 py-1 rounded-full flex items-center gap-1 sm:hidden">
+                          <Heart className="w-3 h-3 text-primary" />
+                          <span className="text-[10px] font-bold text-white">{entry.votes}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

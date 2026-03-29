@@ -1,17 +1,21 @@
-import { Wallet, Star, CreditCard } from "lucide-react";
-import { useLocation, Link } from "react-router-dom";
+import { Wallet, Star, CreditCard, Settings } from "lucide-react";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { cn } from "@/src/lib/utils";
+import { useContext } from "react";
+import { UserContext } from "../App";
 
 export function TopNav() {
   const location = useLocation();
+  const navigate = useNavigate();
   const path = location.pathname;
+  const { user, firebaseUser } = useContext(UserContext);
 
   if (path === "/") {
     return (
       <header className="fixed top-0 w-full flex justify-between items-center px-6 h-16 bg-transparent z-50">
         <div className="flex items-center gap-2">
           <Wallet className="text-primary w-5 h-5 fill-current" />
-          <span className="text-on-surface font-label text-sm font-semibold tracking-wide">1,250</span>
+          <span className="text-on-surface font-label text-sm font-semibold tracking-wide">{(user?.coins || 0).toLocaleString()}</span>
         </div>
         <nav className="flex items-center gap-8">
           <button className="font-headline font-bold text-lg tracking-tight text-on-surface border-b-2 border-secondary pb-1">For You</button>
@@ -62,7 +66,7 @@ export function TopNav() {
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-surface-container-high overflow-hidden border border-primary/20">
             <img 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1ZZ22DM1WE48wtG6OHnUstgJPv_MwA80AsxAzpFMGFBA4YcE1ACKde3yYU2k23EeeTqYdRmb0FZVg_EePvIZCNZN1T4eahRkedEUsYWPpwfqdTuXQhDTs62M3i4B54LfJQYNcQQgS4UuUBmksJb9GgNps-wrGmdRpHbiQWXZOJlJNHMQibHbEaeIw7varvXzqjerbwmr_W-zd3SCbvc5jSU9VhycJFCMXGP77VL6uAwFTXrcYLjQKGhG12YvT_eOu1s-2ZLBLoFE" 
+              src={user?.avatarUrl || firebaseUser?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser?.uid}`} 
               alt="Avatar" 
               className="w-full h-full object-cover"
             />
@@ -71,9 +75,17 @@ export function TopNav() {
             {path === "/challenges" ? "Challenges" : "Viral Scene"}
           </span>
         </div>
-        <button className="text-primary hover:opacity-80 transition-opacity active:scale-95 duration-200">
-          <CreditCard className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-4">
+          <button className="text-primary hover:opacity-80 transition-opacity active:scale-95 duration-200">
+            <CreditCard className="w-6 h-6" />
+          </button>
+          <button 
+            onClick={() => navigate("/settings")}
+            className="text-on-surface hover:opacity-80 transition-opacity active:scale-95 duration-200"
+          >
+            <Settings className="w-6 h-6" />
+          </button>
+        </div>
       </header>
     );
   }
